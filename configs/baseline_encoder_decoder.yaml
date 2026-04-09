@@ -1,0 +1,39 @@
+experiment:
+  name: baseline_encoder_decoder
+  output_dir: outputs/runs
+
+seed: 42
+
+data:
+  dataset_name: dpelacani/mri-t1-t2-2D-sliced-64
+  train_split: train
+  val_split: validation
+  input_key: t1
+  target_key: t2
+  metadata_keys: [view, patient_id]
+  normalization:
+    method: global_minmax
+    sample_step: 10
+    lower_percentile: 1.0
+    upper_percentile: 99.0
+
+loader:
+  batch_size: 64
+  num_workers: 4
+  pin_memory: true
+
+model:
+  name: baseline_encoder_decoder
+
+training:
+  epochs: 20
+  lr: 0.0015
+  loss: mse
+  device: auto
+  use_amp: true
+  compile_model: false
+
+evaluation:
+  metrics: [mse, mae, rmse, psnr, ssim]
+  num_visual_samples: 8
+  max_batches:
