@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import math
 
-import numpy as np
 import torch
 from skimage.metrics import structural_similarity
 
@@ -34,7 +33,7 @@ def ssim_per_image(pred: torch.Tensor, target: torch.Tensor, data_range: float =
 
 def accumulate_error_sums(pred: torch.Tensor, target: torch.Tensor) -> tuple[float, float, int]:
     diff = pred - target
-    sq_error_sum = float(torch.sum(diff ** 2).item())
+    sq_error_sum = float(torch.sum(diff**2).item())
     abs_error_sum = float(torch.sum(torch.abs(diff)).item())
     numel = diff.numel()
     return sq_error_sum, abs_error_sum, numel

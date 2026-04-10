@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
 
 import numpy as np
 import torch
@@ -16,7 +16,9 @@ def sample_intensities(dataset, key: str, sample_step: int = 10) -> np.ndarray:
     return np.concatenate(values, axis=0)
 
 
-def compute_global_minmax(dataset, keys: Iterable[str], sample_step: int = 10) -> dict[str, dict[str, float]]:
+def compute_global_minmax(
+    dataset, keys: Iterable[str], sample_step: int = 10
+) -> dict[str, dict[str, float]]:
     stats: dict[str, dict[str, float]] = {}
     for key in keys:
         mins, maxs = [], []

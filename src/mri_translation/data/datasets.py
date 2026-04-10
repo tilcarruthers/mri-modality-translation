@@ -77,7 +77,9 @@ def build_dataset_bundle(data_config: dict) -> DatasetBundle:
         normalizer=normalizer,
         metadata_keys=metadata_keys,
     )
-    return DatasetBundle(train_raw=train_raw, val_raw=val_raw, train=train_ds, val=val_ds, normalizer=normalizer)
+    return DatasetBundle(
+        train_raw=train_raw, val_raw=val_raw, train=train_ds, val=val_ds, normalizer=normalizer
+    )
 
 
 def build_dataloaders(data_config: dict, loader_config: dict):

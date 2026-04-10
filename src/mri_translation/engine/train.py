@@ -23,7 +23,9 @@ def build_loss(name: str):
     raise ValueError(f"Unsupported loss: {name}")
 
 
-def train_one_epoch(model, train_loader, criterion, optimizer, device, use_amp: bool = False, scaler=None):
+def train_one_epoch(
+    model, train_loader, criterion, optimizer, device, use_amp: bool = False, scaler=None
+):
     model.train()
     running_loss = 0.0
     num_batches = 0
@@ -76,7 +78,9 @@ def validate_one_epoch(model, val_loader, criterion, device, use_amp: bool = Fal
     return running_loss / max(1, num_batches)
 
 
-def save_checkpoint(path: Path, model, optimizer, epoch: int, history: dict, train_loss: float, val_loss: float):
+def save_checkpoint(
+    path: Path, model, optimizer, epoch: int, history: dict, train_loss: float, val_loss: float
+):
     torch.save(
         {
             "epoch": epoch,
@@ -113,7 +117,9 @@ def fit(model, train_loader, val_loader, training_config: dict, run_dir: Path):
 
     start_time = time.time()
     for epoch in range(1, training_config["epochs"] + 1):
-        train_loss = train_one_epoch(model, train_loader, criterion, optimizer, device, use_amp, scaler)
+        train_loss = train_one_epoch(
+            model, train_loader, criterion, optimizer, device, use_amp, scaler
+        )
         val_loss = validate_one_epoch(model, val_loader, criterion, device, use_amp)
 
         history["train_loss"].append(train_loss)

@@ -66,7 +66,7 @@ def evaluate_model(
 
     mse = sq_error_sum / max(1, total_numel)
     mae = abs_error_sum / max(1, total_numel)
-    rmse = mse ** 0.5
+    rmse = mse**0.5
 
     outputs = {}
     if "mse" in metric_names:

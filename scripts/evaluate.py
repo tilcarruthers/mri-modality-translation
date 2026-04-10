@@ -30,7 +30,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    with open(args.config, "r", encoding="utf-8") as f:
+    with open(args.config, encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
     validate_eval_config(config)
@@ -55,7 +55,9 @@ def main() -> None:
     )
     save_json(metrics, eval_dir / "metrics_eval.json")
 
-    visual_batch = get_visual_batch(loaders["val"], num_samples=config["evaluation"]["num_visual_samples"])
+    visual_batch = get_visual_batch(
+        loaders["val"], num_samples=config["evaluation"]["num_visual_samples"]
+    )
     plot_prediction_grid(
         model=model,
         batch=visual_batch,

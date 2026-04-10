@@ -8,7 +8,9 @@ from mri_translation.utils.io import ensure_dir
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Copy selected run figures into reports/figures.")
-    parser.add_argument("--run-dir", type=str, required=True, help="Run directory under outputs/runs.")
+    parser.add_argument(
+        "--run-dir", type=str, required=True, help="Run directory under outputs/runs."
+    )
     return parser.parse_args()
 
 

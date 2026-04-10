@@ -4,7 +4,6 @@ import argparse
 import json
 from pathlib import Path
 
-import torch
 import yaml
 
 from mri_translation.config import validate_train_config
@@ -25,7 +24,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    with open(args.config, "r", encoding="utf-8") as f:
+    with open(args.config, encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
     validate_train_config(config)
@@ -58,7 +57,9 @@ def main() -> None:
         max_batches=config["evaluation"].get("max_batches"),
     )
 
-    visual_batch = get_visual_batch(loaders["val"], num_samples=config["evaluation"]["num_visual_samples"])
+    visual_batch = get_visual_batch(
+        loaders["val"], num_samples=config["evaluation"]["num_visual_samples"]
+    )
     prediction_path = run_dir / "prediction_grid.png"
     plot_prediction_grid(
         model=model,

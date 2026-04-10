@@ -9,7 +9,9 @@ from mri_translation.engine.evaluate import load_checkpoint
 from mri_translation.engine.train import resolve_device
 
 
-def plot_training_history(history: dict, save_path: str | Path, title: str = "training history") -> None:
+def plot_training_history(
+    history: dict, save_path: str | Path, title: str = "training history"
+) -> None:
     epochs = range(1, len(history["train_loss"]) + 1)
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.plot(epochs, history["train_loss"], label="train")
