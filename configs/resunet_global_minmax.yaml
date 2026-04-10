@@ -1,5 +1,5 @@
 experiment:
-  name: unet
+  name: resunet_global_minmax
   output_dir: outputs/runs
 
 seed: 42
@@ -34,7 +34,7 @@ loader:
   pin_memory: true
 
 model:
-  name: unet
+  name: resunet
 
 training:
   epochs: 50
@@ -42,7 +42,7 @@ training:
   loss: mse
   device: auto
   use_amp: true
-  compile_model: true
+  compile_model: false
 
 scheduler:
   name: reduce_on_plateau

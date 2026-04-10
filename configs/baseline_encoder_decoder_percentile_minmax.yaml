@@ -1,0 +1,63 @@
+experiment:
+  name: baseline_encoder_decoder_percentile_minmax
+  output_dir: outputs/runs
+
+seed: 42
+
+data:
+  dataset_name: dpelacani/mri-t1-t2-2D-sliced-64
+  source_train_split: train
+  source_val_split: validation
+  cache_dir: data/cache/huggingface
+  local_dataset_dir: data/raw/mri_t1_t2_2d_sliced_64
+  input_key: t1
+  target_key: t2
+  metadata_keys: [view, patient_id]
+  normalization:
+    method: percentile_minmax
+    sample_step: 10
+    lower_percentile: 1.0
+    upper_percentile: 99.5
+  split:
+    strategy: patient_grouped
+    group_key: patient_id
+    train_ratio: 0.70
+    val_ratio: 0.15
+    test_ratio: 0.15
+    seed: 42
+    split_dir: data/splits/default
+    reuse_existing: true
+
+loader:
+  batch_size: 64
+  num_workers: 4
+  pin_memory: true
+
+model:
+  name: baseline_encoder_decoder
+
+training:
+  epochs: 40
+  lr: 0.001
+  loss: mse
+  device: auto
+  use_amp: true
+  compile_model: false
+
+scheduler:
+  name: reduce_on_plateau
+  mode: min
+  factor: 0.5
+  patience: 4
+  min_lr: 1.0e-6
+
+early_stopping:
+  enabled: true
+  patience: 10
+  min_delta: 1.0e-5
+  monitor: val_loss
+
+evaluation:
+  metrics: [mse, mae, rmse, psnr, ssim]
+  num_visual_samples: 8
+  max_batches:

@@ -1,6 +1,7 @@
 import torch
 
 from mri_translation.models.baseline import SimpleEncoderDecoder
+from mri_translation.models.resunet import ResUNet
 from mri_translation.models.unet import UNet
 
 
@@ -16,3 +17,18 @@ def test_unet_output_shape():
     x = torch.randn(2, 1, 64, 64)
     y = model(x)
     assert y.shape == (2, 1, 64, 64)
+
+
+def test_resunet_output_shape():
+    model = ResUNet()
+    x = torch.randn(2, 1, 64, 64)
+    y = model(x)
+    assert y.shape == (2, 1, 64, 64)
+
+
+def test_resunet_output_range():
+    model = ResUNet()
+    x = torch.randn(2, 1, 64, 64)
+    y = model(x)
+    assert float(y.min()) >= 0.0
+    assert float(y.max()) <= 1.0

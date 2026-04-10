@@ -52,9 +52,11 @@ class EarlyStopping:
         self.min_delta = min_delta
         self.monitor = monitor
         self.counter = 0
+        self.best_value: float | None = None
 
-    def step(self, current_value: float, best_value: float) -> bool:
-        if current_value < (best_value - self.min_delta):
+    def step(self, current_value: float) -> bool:
+        if self.best_value is None or current_value < (self.best_value - self.min_delta):
+            self.best_value = current_value
             self.counter = 0
             return False
 
@@ -62,8 +64,28 @@ class EarlyStopping:
         return self.counter >= self.patience
 
 
+def maybe_compile_model(model, training_config: dict):
+    compile_requested = bool(training_config.get("compile_model", False))
+    if not compile_requested or not hasattr(torch, "compile"):
+        return model, False
+
+    try:
+        compiled_model = torch.compile(model)
+        print("Model compilation enabled.")
+        return compiled_model, True
+    except Exception as exc:
+        print(f"Model compilation failed during setup; continuing without compile. Reason: {exc}")
+        return model, False
+
+
 def train_one_epoch(
-    model, train_loader, criterion, optimizer, device, use_amp: bool = False, scaler=None
+    model,
+    train_loader,
+    criterion,
+    optimizer,
+    device,
+    use_amp: bool = False,
+    scaler=None,
 ):
     model.train()
     running_loss = 0.0
@@ -154,14 +176,8 @@ def fit(
 ):
     run_dir.mkdir(parents=True, exist_ok=True)
     device = resolve_device(training_config["device"])
-    model = model.to(device)
-
-    if training_config.get("compile_model", False) and hasattr(torch, "compile"):
-        try:
-            model = torch.compile(model)
-            print("Model compilation enabled.")
-        except Exception as exc:
-            print(f"Model compilation failed; continuing without compile. Reason: {exc}")
+    base_model = model.to(device)
+    model, model_is_compiled = maybe_compile_model(base_model, training_config)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=training_config["lr"])
     scheduler = build_scheduler(optimizer, scheduler_config)
@@ -183,13 +199,30 @@ def fit(
     last_path = run_dir / "last.pt"
 
     start_time = time.time()
-    for epoch in range(1, training_config["epochs"] + 1):
+    epoch = 0
+    while epoch < training_config["epochs"]:
+        epoch += 1
         current_lr = float(optimizer.param_groups[0]["lr"])
 
-        train_loss = train_one_epoch(
-            model, train_loader, criterion, optimizer, device, use_amp, scaler
-        )
-        val_loss = validate_one_epoch(model, val_loader, criterion, device, use_amp)
+        try:
+            train_loss = train_one_epoch(
+                model, train_loader, criterion, optimizer, device, use_amp, scaler
+            )
+            val_loss = validate_one_epoch(model, val_loader, criterion, device, use_amp)
+        except Exception as exc:
+            if model_is_compiled:
+                print(
+                    "Compiled model failed during execution; falling back to eager mode. "
+                    f"Reason: {exc}"
+                )
+                model = base_model
+                model_is_compiled = False
+                optimizer = torch.optim.Adam(model.parameters(), lr=optimizer.param_groups[0]["lr"])
+                scheduler = build_scheduler(optimizer, scheduler_config)
+                scaler = GradScaler("cuda") if (use_amp and device.type == "cuda") else None
+                epoch -= 1
+                continue
+            raise
 
         history["train_loss"].append(train_loss)
         history["val_loss"].append(val_loss)
@@ -217,7 +250,7 @@ def fit(
         )
 
         if early_stopper is not None:
-            stop = early_stopper.step(val_loss, best_val_loss)
+            stop = early_stopper.step(val_loss)
             if stop:
                 print(f"Early stopping triggered at epoch {epoch:02d}.")
                 break

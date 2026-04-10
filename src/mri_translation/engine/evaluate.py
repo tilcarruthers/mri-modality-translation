@@ -55,6 +55,8 @@ def evaluate_model(
         else:
             pred = model(x)
 
+        pred = torch.clamp(pred, 0.0, 1.0)
+
         batch_sq_error_sum, batch_abs_error_sum, batch_numel = accumulate_error_sums(pred, y)
         sq_error_sum += batch_sq_error_sum
         abs_error_sum += batch_abs_error_sum

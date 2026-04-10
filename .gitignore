@@ -24,4 +24,4 @@ data/raw/
 data/cache/
 
 # Keep split manifests tracked for reproducibility
-# data/splits/
+data/splits/

@@ -19,9 +19,8 @@ def rmse_per_pixel(pred: torch.Tensor, target: torch.Tensor) -> float:
 
 
 def psnr_per_image(pred: torch.Tensor, target: torch.Tensor, data_range: float = 1.0) -> float:
-    mse = mse_per_pixel(pred, target)
-    if mse <= 1e-12:
-        return float("inf")
+    mse = max(mse_per_pixel(pred, target), 1e-12)
+    data_range = max(float(data_range), 1e-12)
     return 20.0 * math.log10(data_range) - 10.0 * math.log10(mse)
 
 
