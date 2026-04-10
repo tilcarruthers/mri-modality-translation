@@ -45,6 +45,8 @@ def main() -> None:
         train_loader=loaders["train"],
         val_loader=loaders["val"],
         training_config=config["training"],
+        scheduler_config=config.get("scheduler"),
+        early_stopping_config=config.get("early_stopping"),
         run_dir=run_dir,
     )
 

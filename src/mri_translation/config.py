@@ -34,6 +34,22 @@ def validate_train_config(config: dict[str, Any]) -> None:
         "training",
     )
 
+    if "scheduler" in config:
+        _require_keys(config["scheduler"], {"name"}, "scheduler")
+        if config["scheduler"]["name"] == "reduce_on_plateau":
+            _require_keys(
+                config["scheduler"],
+                {"name", "mode", "factor", "patience", "min_lr"},
+                "scheduler",
+            )
+
+    if "early_stopping" in config:
+        _require_keys(
+            config["early_stopping"],
+            {"enabled", "patience", "min_delta", "monitor"},
+            "early_stopping",
+        )
+
 
 def validate_eval_config(config: dict[str, Any]) -> None:
     _require_keys(config, REQUIRED_TOP_LEVEL_KEYS, "config")

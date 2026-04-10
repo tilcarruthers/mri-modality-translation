@@ -23,6 +23,45 @@ def build_loss(name: str):
     raise ValueError(f"Unsupported loss: {name}")
 
 
+def build_scheduler(optimizer, scheduler_config: dict | None):
+    if not scheduler_config:
+        return None
+
+    name = scheduler_config.get("name")
+    if name == "reduce_on_plateau":
+        return torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer,
+            mode=scheduler_config.get("mode", "min"),
+            factor=scheduler_config.get("factor", 0.5),
+            patience=scheduler_config.get("patience", 4),
+            min_lr=scheduler_config.get("min_lr", 1.0e-6),
+        )
+
+    raise ValueError(f"Unsupported scheduler: {name}")
+
+
+def unwrap_model(model):
+    return getattr(model, "_orig_mod", model)
+
+
+class EarlyStopping:
+    def __init__(self, patience: int, min_delta: float = 0.0, monitor: str = "val_loss") -> None:
+        if monitor != "val_loss":
+            raise ValueError(f"Unsupported early stopping monitor: {monitor}")
+        self.patience = patience
+        self.min_delta = min_delta
+        self.monitor = monitor
+        self.counter = 0
+
+    def step(self, current_value: float, best_value: float) -> bool:
+        if current_value < (best_value - self.min_delta):
+            self.counter = 0
+            return False
+
+        self.counter += 1
+        return self.counter >= self.patience
+
+
 def train_one_epoch(
     model, train_loader, criterion, optimizer, device, use_amp: bool = False, scaler=None
 ):
@@ -79,22 +118,40 @@ def validate_one_epoch(model, val_loader, criterion, device, use_amp: bool = Fal
 
 
 def save_checkpoint(
-    path: Path, model, optimizer, epoch: int, history: dict, train_loss: float, val_loss: float
+    path: Path,
+    model,
+    optimizer,
+    scheduler,
+    epoch: int,
+    history: dict,
+    train_loss: float,
+    val_loss: float,
 ):
+    base_model = unwrap_model(model)
     torch.save(
         {
             "epoch": epoch,
-            "model_state_dict": model.state_dict(),
+            "model_state_dict": base_model.state_dict(),
             "optimizer_state_dict": optimizer.state_dict(),
+            "scheduler_state_dict": scheduler.state_dict() if scheduler is not None else None,
             "history": history,
             "train_loss": train_loss,
             "val_loss": val_loss,
+            "lr": optimizer.param_groups[0]["lr"],
         },
         path,
     )
 
 
-def fit(model, train_loader, val_loader, training_config: dict, run_dir: Path):
+def fit(
+    model,
+    train_loader,
+    val_loader,
+    training_config: dict,
+    run_dir: Path,
+    scheduler_config: dict | None = None,
+    early_stopping_config: dict | None = None,
+):
     run_dir.mkdir(parents=True, exist_ok=True)
     device = resolve_device(training_config["device"])
     model = model.to(device)
@@ -102,21 +159,33 @@ def fit(model, train_loader, val_loader, training_config: dict, run_dir: Path):
     if training_config.get("compile_model", False) and hasattr(torch, "compile"):
         try:
             model = torch.compile(model)
-        except Exception:
-            pass
+            print("Model compilation enabled.")
+        except Exception as exc:
+            print(f"Model compilation failed; continuing without compile. Reason: {exc}")
 
     optimizer = torch.optim.Adam(model.parameters(), lr=training_config["lr"])
+    scheduler = build_scheduler(optimizer, scheduler_config)
     criterion = build_loss(training_config["loss"])
     use_amp = bool(training_config.get("use_amp", False))
     scaler = GradScaler("cuda") if (use_amp and device.type == "cuda") else None
 
-    history = {"train_loss": [], "val_loss": []}
+    early_stopper = None
+    if early_stopping_config and early_stopping_config.get("enabled", False):
+        early_stopper = EarlyStopping(
+            patience=early_stopping_config.get("patience", 10),
+            min_delta=early_stopping_config.get("min_delta", 0.0),
+            monitor=early_stopping_config.get("monitor", "val_loss"),
+        )
+
+    history = {"train_loss": [], "val_loss": [], "lr": []}
     best_val_loss = float("inf")
     best_path = run_dir / "best.pt"
     last_path = run_dir / "last.pt"
 
     start_time = time.time()
     for epoch in range(1, training_config["epochs"] + 1):
+        current_lr = float(optimizer.param_groups[0]["lr"])
+
         train_loss = train_one_epoch(
             model, train_loader, criterion, optimizer, device, use_amp, scaler
         )
@@ -124,13 +193,34 @@ def fit(model, train_loader, val_loader, training_config: dict, run_dir: Path):
 
         history["train_loss"].append(train_loss)
         history["val_loss"].append(val_loss)
+        history["lr"].append(current_lr)
 
-        save_checkpoint(last_path, model, optimizer, epoch, history, train_loss, val_loss)
-        if val_loss < best_val_loss:
+        save_checkpoint(
+            last_path, model, optimizer, scheduler, epoch, history, train_loss, val_loss
+        )
+
+        is_best = val_loss < best_val_loss
+        if is_best:
             best_val_loss = val_loss
-            save_checkpoint(best_path, model, optimizer, epoch, history, train_loss, val_loss)
+            save_checkpoint(
+                best_path, model, optimizer, scheduler, epoch, history, train_loss, val_loss
+            )
 
-        print(f"Epoch {epoch:02d} | train_loss={train_loss:.6f} | val_loss={val_loss:.6f}")
+        if scheduler is not None:
+            scheduler.step(val_loss)
+
+        print(
+            f"Epoch {epoch:02d} | "
+            f"lr={current_lr:.6g} | "
+            f"train_loss={train_loss:.6f} | "
+            f"val_loss={val_loss:.6f}"
+        )
+
+        if early_stopper is not None:
+            stop = early_stopper.step(val_loss, best_val_loss)
+            if stop:
+                print(f"Early stopping triggered at epoch {epoch:02d}.")
+                break
 
     elapsed = time.time() - start_time
     print(f"Training complete in {elapsed:.2f}s")

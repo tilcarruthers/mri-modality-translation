@@ -26,12 +26,25 @@ model:
   name: baseline_encoder_decoder
 
 training:
-  epochs: 20
-  lr: 0.0015
+  epochs: 40
+  lr: 0.001
   loss: mse
   device: auto
   use_amp: true
-  compile_model: false
+  compile_model: true
+
+scheduler:
+  name: reduce_on_plateau
+  mode: min
+  factor: 0.5
+  patience: 4
+  min_lr: 1.0e-6
+
+early_stopping:
+  enabled: true
+  patience: 10
+  min_delta: 1.0e-5
+  monitor: val_loss
 
 evaluation:
   metrics: [mse, mae, rmse, psnr, ssim]
