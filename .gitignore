@@ -18,3 +18,10 @@ reports/figures/*
 # OS
 .DS_Store
 Thumbs.db
+
+# Data artifacts
+data/raw/
+data/cache/
+
+# Keep split manifests tracked for reproducibility
+# data/splits/

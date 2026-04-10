@@ -19,13 +19,40 @@ def _require_keys(config: dict[str, Any], keys: set[str], scope: str) -> None:
         raise KeyError(f"Missing required keys in {scope}: {missing}")
 
 
-def validate_train_config(config: dict[str, Any]) -> None:
-    _require_keys(config, REQUIRED_TOP_LEVEL_KEYS, "config")
+def _validate_data_config(data_config: dict[str, Any]) -> None:
     _require_keys(
-        config["data"],
-        {"dataset_name", "train_split", "val_split", "input_key", "target_key"},
+        data_config,
+        {
+            "dataset_name",
+            "source_train_split",
+            "source_val_split",
+            "cache_dir",
+            "local_dataset_dir",
+            "split",
+            "input_key",
+            "target_key",
+        },
         "data",
     )
+    _require_keys(
+        data_config["split"],
+        {
+            "strategy",
+            "group_key",
+            "train_ratio",
+            "val_ratio",
+            "test_ratio",
+            "seed",
+            "split_dir",
+            "reuse_existing",
+        },
+        "data.split",
+    )
+
+
+def validate_train_config(config: dict[str, Any]) -> None:
+    _require_keys(config, REQUIRED_TOP_LEVEL_KEYS, "config")
+    _validate_data_config(config["data"])
     _require_keys(config["loader"], {"batch_size", "num_workers", "pin_memory"}, "loader")
     _require_keys(config["model"], {"name"}, "model")
     _require_keys(
@@ -53,11 +80,7 @@ def validate_train_config(config: dict[str, Any]) -> None:
 
 def validate_eval_config(config: dict[str, Any]) -> None:
     _require_keys(config, REQUIRED_TOP_LEVEL_KEYS, "config")
-    _require_keys(
-        config["data"],
-        {"dataset_name", "train_split", "val_split", "input_key", "target_key"},
-        "data",
-    )
+    _validate_data_config(config["data"])
     _require_keys(config["loader"], {"batch_size", "num_workers", "pin_memory"}, "loader")
     _require_keys(config["model"], {"name"}, "model")
     _require_keys(config["training"], {"device", "use_amp", "compile_model"}, "training")

@@ -11,8 +11,14 @@ def ensure_dir(path: str | Path) -> Path:
     return path
 
 
-def save_json(data: dict[str, Any], path: str | Path) -> None:
+def save_json(data: Any, path: str | Path) -> None:
     path = Path(path)
     ensure_dir(path.parent)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
+
+
+def load_json(path: str | Path) -> Any:
+    path = Path(path)
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)

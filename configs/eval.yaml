@@ -6,8 +6,10 @@ seed: 42
 
 data:
   dataset_name: dpelacani/mri-t1-t2-2D-sliced-64
-  train_split: train
-  val_split: validation
+  source_train_split: train
+  source_val_split: validation
+  cache_dir: data/cache/huggingface
+  local_dataset_dir: data/raw/mri_t1_t2_2d_sliced_64
   input_key: t1
   target_key: t2
   metadata_keys: [view, patient_id]
@@ -16,6 +18,15 @@ data:
     sample_step: 10
     lower_percentile: 1.0
     upper_percentile: 99.0
+  split:
+    strategy: patient_grouped
+    group_key: patient_id
+    train_ratio: 0.70
+    val_ratio: 0.15
+    test_ratio: 0.15
+    seed: 42
+    split_dir: data/splits/default
+    reuse_existing: true
 
 loader:
   batch_size: 64
@@ -28,7 +39,7 @@ model:
 training:
   device: auto
   use_amp: true
-  compile_model: false
+  compile_model: true
 
 evaluation:
   metrics: [mse, mae, rmse, psnr, ssim]

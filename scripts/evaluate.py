@@ -25,6 +25,13 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Override model name in config, e.g. baseline_encoder_decoder or unet.",
     )
+    parser.add_argument(
+        "--split",
+        type=str,
+        choices=["train", "val", "test"],
+        default="test",
+        help="Dataset split to evaluate on.",
+    )
     return parser.parse_args()
 
 
@@ -44,29 +51,30 @@ def main() -> None:
 
     loaders, _ = build_dataloaders(config["data"], config["loader"])
     model = build_model(config["model"]["name"])
+    eval_loader = loaders[args.split]
 
     metrics = evaluate_model(
         model=model,
-        loader=loaders["val"],
+        loader=eval_loader,
         device=config["training"]["device"],
         metric_names=config["evaluation"]["metrics"],
         checkpoint_path=args.checkpoint,
         max_batches=config["evaluation"].get("max_batches"),
     )
-    save_json(metrics, eval_dir / "metrics_eval.json")
+    save_json(metrics, eval_dir / f"metrics_{args.split}.json")
 
     visual_batch = get_visual_batch(
-        loaders["val"], num_samples=config["evaluation"]["num_visual_samples"]
+        eval_loader, num_samples=config["evaluation"]["num_visual_samples"]
     )
     plot_prediction_grid(
         model=model,
         batch=visual_batch,
         device=config["training"]["device"],
-        save_path=eval_dir / "prediction_grid_eval.png",
+        save_path=eval_dir / f"prediction_grid_{args.split}.png",
         checkpoint_path=args.checkpoint,
     )
 
-    print(json.dumps(metrics, indent=2))
+    print(json.dumps({"split": args.split, "metrics": metrics}, indent=2))
 
 
 if __name__ == "__main__":
