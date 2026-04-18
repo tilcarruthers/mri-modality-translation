@@ -9,7 +9,6 @@ __pycache__/
 # Outputs
 outputs/runs/*
 !outputs/runs/.gitkeep
-reports/figures/*
 !reports/figures/.gitkeep
 
 # Notebook noise

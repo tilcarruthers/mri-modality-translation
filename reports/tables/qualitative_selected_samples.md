@@ -1,0 +1,6 @@
+|   dataset_index | sample_id    |   patient_id | view     | source_split   |
+|----------------:|:-------------|-------------:|:---------|:---------------|
+|            4410 | train_004410 |          310 | axial    | train          |
+|            6495 | train_006495 |          048 | coronal  | train          |
+|            7320 | train_007320 |          045 | sagittal | train          |
+|           94185 | train_094185 |          296 | axial    | train          |

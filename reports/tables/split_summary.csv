@@ -1,0 +1,4 @@
+split,num_samples,num_patients,num_axial,num_coronal,num_sagittal
+train,108360,258,25800,41280,41280
+val,22680,55,5400,8640,8640
+test,24570,56,5850,9360,9360
